@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "Follow Me",
+    "slug": "followme",
+    "scheme": "followme",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.followme.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Follow Me usa tu ubicacion para mostrarte dentro del viaje activo.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Follow Me necesita ubicacion durante viajes activos para compartir tu avance con el grupo."
+      }
+    },
+    "android": {
+      "package": "com.followme.app",
+      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION", "ACCESS_BACKGROUND_LOCATION"]
+    },
+    "plugins": ["expo-router", "expo-location"],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
