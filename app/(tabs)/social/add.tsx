@@ -37,8 +37,8 @@ export default function AddFriendScreen() {
     try {
       await sendFriendRequest(userId!, receiverId);
       setResults((prev) => prev.filter((u) => u.id !== receiverId));
-    } catch (e: any) {
-      setError(e.message ?? 'Error al enviar solicitud');
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Error al enviar solicitud');
     } finally {
       setSendingTo(null);
     }

@@ -24,8 +24,8 @@ export default function CreateTripScreen() {
     try {
       const trip = await createTrip(session.user.id, title.trim(), description.trim());
       router.replace(`/(tabs)/trips/${trip.id}`);
-    } catch (e: any) {
-      setError(e.message ?? 'Error al crear viaje');
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Error al crear viaje');
     } finally {
       setIsCreating(false);
     }

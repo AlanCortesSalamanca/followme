@@ -11,10 +11,6 @@ export default function LoginScreen() {
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) return;
     await signIn(email.trim(), password);
-    const { session } = useAuthStore.getState();
-    if (session) {
-      router.replace('/(tabs)/trips');
-    }
   };
 
   return (

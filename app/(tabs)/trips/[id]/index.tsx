@@ -5,14 +5,7 @@ import { useAuthStore } from '@/stores/useAuthStore';
 import { useTripStore } from '@/stores/useTripStore';
 import { getTripById, getTripParticipants, updateTripStatus, leaveTrip, Trip, Participant } from '@/services/supabase/trips';
 import * as Clipboard from 'expo-clipboard';
-
-const STATUS_LABELS: Record<string, string> = {
-  planned: 'Planeado',
-  active: 'Activo',
-  paused: 'En pausa',
-  completed: 'Completado',
-  cancelled: 'Cancelado',
-};
+import { STATUS_LABELS } from '@/utils/constants';
 
 export default function TripDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -72,11 +65,13 @@ export default function TripDetailScreen() {
       await updateTripStatus(trip.id, newStatus);
       await loadTrip();
       if (newStatus === 'active') {
-        setActiveTrip({ ...trip, status: newStatus });
+        const updatedTrip = await getTripById(trip.id);
+        if (updatedTrip) setActiveTrip(updatedTrip);
         router.push('/(tabs)/map');
       }
-    } catch {
-      setError('Error al cambiar estado');
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : 'Error al cambiar estado';
+      setError(message);
     } finally {
       setIsUpdating(false);
     }
@@ -92,8 +87,8 @@ export default function TripDetailScreen() {
     try {
       await leaveTrip(trip.id, userId);
       router.back();
-    } catch {
-      setError('Error al salir del viaje');
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Error al salir del viaje');
     } finally {
       setIsUpdating(false);
     }

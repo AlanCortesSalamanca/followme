@@ -39,8 +39,12 @@ export default function FriendsScreen() {
 
   const handleRemove = async (friendId: string) => {
     if (!userId) return;
-    await removeFriend(userId, friendId);
-    loadData();
+    try {
+      await removeFriend(userId, friendId);
+      await loadData();
+    } catch (e: unknown) {
+      console.error('[FriendsScreen] Failed to remove friend:', e);
+    }
   };
 
   const onRefresh = async () => {

@@ -1,25 +1,10 @@
 import { useEffect, useState, useCallback } from 'react';
 import { router } from 'expo-router';
-import { FlatList, Pressable, StyleSheet, Text, View, ActivityIndicator, RefreshControl } from 'react-native';
+import { Pressable, StyleSheet, Text, View, ActivityIndicator, RefreshControl, ScrollView } from 'react-native';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { getUserTrips, Trip } from '@/services/supabase/trips';
 import { supabase } from '@/services/supabase/client';
-
-const STATUS_LABELS: Record<string, string> = {
-  planned: 'Planeado',
-  active: 'Activo',
-  paused: 'En pausa',
-  completed: 'Completado',
-  cancelled: 'Cancelado',
-};
-
-const STATUS_COLORS: Record<string, string> = {
-  planned: '#F59E0B',
-  active: '#22C55E',
-  paused: '#F97316',
-  completed: '#64748B',
-  cancelled: '#EF4444',
-};
+import { STATUS_LABELS, STATUS_COLORS } from '@/utils/constants';
 
 export default function TripsScreen() {
   const { session } = useAuthStore();
@@ -111,19 +96,14 @@ export default function TripsScreen() {
         </Pressable>
       </View>
 
-      <FlatList
-        data={[]}
-        keyExtractor={() => 'placeholder'}
-        renderItem={null}
+      <ScrollView
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        ListHeaderComponent={() => (
-          <>
-            {renderSection('Activos', active, 'No tienes viajes activos.')}
-            {renderSection('Planeados', planned, 'No tienes viajes planeados.')}
-            {renderSection('Pasados', past, 'No tienes viajes pasados.')}
-          </>
-        )}
-      />
+        contentContainerStyle={styles.scrollContent}
+      >
+        {renderSection('Activos', active, 'No tienes viajes activos.')}
+        {renderSection('Planeados', planned, 'No tienes viajes planeados.')}
+        {renderSection('Pasados', past, 'No tienes viajes pasados.')}
+      </ScrollView>
     </View>
   );
 }
@@ -168,6 +148,9 @@ const styles = StyleSheet.create({
     color: '#38BDF8',
     fontWeight: '700',
     fontSize: 14,
+  },
+  scrollContent: {
+    paddingBottom: 24,
   },
   section: {
     paddingHorizontal: 16,

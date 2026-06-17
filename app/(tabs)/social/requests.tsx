@@ -34,8 +34,8 @@ export default function FriendRequestsScreen() {
     try {
       await respondToRequest(requestId, status);
       setRequests((prev) => prev.filter((r) => r.id !== requestId));
-    } catch (e: any) {
-      setError(e.message ?? 'Error al procesar solicitud');
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Error al procesar solicitud');
     }
   };
 

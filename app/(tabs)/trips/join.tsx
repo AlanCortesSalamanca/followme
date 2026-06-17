@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, TextInput, View, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { useAuthStore } from '@/stores/useAuthStore';
-import { joinTripByCode } from '@/services/supabase/trips';
+import { joinTripByCode, normalizeInviteCode } from '@/services/supabase/trips';
 
 export default function JoinTripScreen() {
   const { session } = useAuthStore();
@@ -12,7 +12,7 @@ export default function JoinTripScreen() {
 
   const handleJoin = async () => {
     if (!session?.user.id) return;
-    const cleanCode = code.trim().toLowerCase();
+    const cleanCode = normalizeInviteCode(code);
     if (cleanCode.length < 8) {
       setError('El codigo debe tener 8 caracteres.');
       return;
@@ -24,8 +24,8 @@ export default function JoinTripScreen() {
     try {
       const trip = await joinTripByCode(cleanCode, session.user.id);
       router.replace(`/(tabs)/trips/${trip.id}`);
-    } catch (e: any) {
-      setError(e.message ?? 'Error al unirse al viaje');
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Error al unirse al viaje');
     } finally {
       setIsJoining(false);
     }

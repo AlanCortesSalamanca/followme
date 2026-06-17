@@ -23,8 +23,20 @@ export default function RegisterScreen() {
       setLocalError('El nombre debe tener al menos 2 caracteres.');
       return;
     }
-    if (password.length < 6) {
-      setLocalError('La contrasena debe tener al menos 6 caracteres.');
+    if (password.length < 8) {
+      setLocalError('La contrasena debe tener al menos 8 caracteres.');
+      return;
+    }
+    if (!/[A-Z]/.test(password)) {
+      setLocalError('La contrasena debe tener al menos una mayuscula.');
+      return;
+    }
+    if (!/[a-z]/.test(password)) {
+      setLocalError('La contrasena debe tener al menos una minuscula.');
+      return;
+    }
+    if (!/[0-9]/.test(password)) {
+      setLocalError('La contrasena debe tener al menos un numero.');
       return;
     }
     if (password !== confirmPassword) {
@@ -33,10 +45,6 @@ export default function RegisterScreen() {
     }
 
     await signUp(email.trim(), password, displayName.trim());
-    const currentError = useAuthStore.getState().error;
-    if (!currentError) {
-      router.replace('/(auth)/login');
-    }
   };
 
   const displayError = localError || error;

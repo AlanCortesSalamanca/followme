@@ -25,6 +25,10 @@ export type Participant = {
   avatar_url?: string | null;
 };
 
+export function normalizeInviteCode(inviteCode: string): string {
+  return inviteCode.trim().toUpperCase();
+}
+
 export async function createTrip(creatorId: string, title: string, description = '') {
   const { data, error } = await supabase
     .from('trips')
@@ -47,32 +51,25 @@ export async function createTrip(creatorId: string, title: string, description =
 }
 
 export async function getUserTrips(userId: string): Promise<Trip[]> {
-  const { data: asCreator, error: err1 } = await supabase
+  const { data: memberships, error: membershipError } = await supabase
+    .from('trip_participants')
+    .select('trip_id')
+    .eq('user_id', userId)
+    .is('left_at', null);
+  if (membershipError) throw membershipError;
+
+  const tripIds = memberships?.map((membership) => membership.trip_id) ?? [];
+  const visibilityFilter = tripIds.length > 0
+    ? `creator_id.eq.${userId},id.in.(${tripIds.join(',')})`
+    : `creator_id.eq.${userId}`;
+
+  const { data, error } = await supabase
     .from('trips')
     .select('*')
-    .eq('creator_id', userId)
+    .or(visibilityFilter)
     .order('created_at', { ascending: false });
-  if (err1) throw err1;
-
-  const { data: asParticipant, error: err2 } = await supabase
-    .from('trips')
-    .select('*')
-    .not('creator_id', 'eq', userId)
-    .in('id', (await supabase
-      .from('trip_participants')
-      .select('trip_id')
-      .eq('user_id', userId)
-    ).data?.map((p: any) => p.trip_id) ?? [])
-    .order('created_at', { ascending: false });
-  if (err2) throw err2;
-
-  const all = [...(asCreator ?? []), ...(asParticipant ?? [])];
-  const seen = new Set<string>();
-  return all.filter((t) => {
-    if (seen.has(t.id)) return false;
-    seen.add(t.id);
-    return true;
-  });
+  if (error) throw error;
+  return data ?? [];
 }
 
 export async function getTripById(tripId: string): Promise<Trip | null> {
@@ -106,10 +103,11 @@ export async function getTripParticipants(tripId: string): Promise<Participant[]
 }
 
 export async function joinTripByCode(inviteCode: string, userId: string): Promise<Trip> {
+  const normalizedInviteCode = normalizeInviteCode(inviteCode);
   const { data: trip, error: findError } = await supabase
     .from('trips')
     .select('*')
-    .eq('invite_code', inviteCode)
+    .eq('invite_code', normalizedInviteCode)
     .in('status', ['planned', 'active'])
     .single();
   if (findError) throw new Error('Codigo invalido o viaje no disponible');
@@ -145,7 +143,7 @@ export async function joinTripByCode(inviteCode: string, userId: string): Promis
 
 export async function updateTripStatus(tripId: string, status: Trip['status']) {
   const now = new Date().toISOString();
-  const updates: Record<string, any> = { status };
+  const updates: Partial<Pick<Trip, 'status' | 'started_at' | 'ended_at'>> = { status };
 
   if (status === 'active') updates.started_at = now;
   if (status === 'completed' || status === 'cancelled') updates.ended_at = now;

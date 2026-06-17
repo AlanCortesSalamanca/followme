@@ -37,8 +37,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const data = await signIn({ email, password });
       const profile = await getProfile(data.session.user.id);
       set({ session: data.session, profile, isLoading: false });
-    } catch (e: any) {
-      set({ isLoading: false, error: e.message });
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : 'Error al iniciar sesion';
+      set({ isLoading: false, error: message });
     }
   },
 
@@ -47,8 +48,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       await signUp({ email, password, displayName });
       set({ isLoading: false, error: null });
-    } catch (e: any) {
-      set({ isLoading: false, error: e.message });
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : 'Error al crear cuenta';
+      set({ isLoading: false, error: message });
     }
   },
 

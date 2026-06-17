@@ -23,11 +23,16 @@ export type Friend = {
   createdAt: string;
 };
 
+function escapeLike(s: string): string {
+  return s.replace(/[%_\\]/g, '\\$&');
+}
+
 export async function searchUsers(query: string, currentUserId: string): Promise<UserSearchResult[]> {
+  const safeQuery = escapeLike(query);
   const { data, error } = await supabase
     .from('profiles')
     .select('id, display_name, avatar_url')
-    .or(`email.ilike.%${query}%,display_name.ilike.%${query}%`)
+    .or(`email.ilike.%${safeQuery}%,display_name.ilike.%${safeQuery}%`)
     .neq('id', currentUserId)
     .limit(20);
   if (error) throw error;
@@ -63,7 +68,7 @@ export async function getSentRequests(userId: string): Promise<(FriendRequest & 
   return data ?? [];
 }
 
-export async function respondToRequest(requestId: string, status: 'accepted' | 'rejected') {
+export async function respondToRequest(requestId: string, status: 'accepted' | 'rejected', senderId?: string, receiverId?: string) {
   const { error } = await supabase
     .from('friend_requests')
     .update({ status })
@@ -72,20 +77,27 @@ export async function respondToRequest(requestId: string, status: 'accepted' | '
   if (error) throw error;
 
   if (status === 'accepted') {
-    const { data: request } = await supabase
-      .from('friend_requests')
-      .select('sender_id, receiver_id')
-      .eq('id', requestId)
-      .single();
-
-    if (request) {
-      const id1 = request.sender_id < request.receiver_id ? request.sender_id : request.receiver_id;
-      const id2 = request.sender_id < request.receiver_id ? request.receiver_id : request.sender_id;
-      const { error: upsertError } = await supabase
-        .from('friends')
-        .upsert({ user_id_1: id1, user_id_2: id2 }, { onConflict: 'user_id_1, user_id_2', ignoreDuplicates: true });
-      if (upsertError) throw upsertError;
+    let sId: string;
+    let rId: string;
+    if (senderId && receiverId) {
+      sId = senderId;
+      rId = receiverId;
+    } else {
+      const { data: request } = await supabase
+        .from('friend_requests')
+        .select('sender_id, receiver_id')
+        .eq('id', requestId)
+        .single();
+      if (!request) return;
+      sId = request.sender_id;
+      rId = request.receiver_id;
     }
+    const id1 = sId < rId ? sId : rId;
+    const id2 = sId < rId ? rId : sId;
+    const { error: upsertError } = await supabase
+      .from('friends')
+      .upsert({ user_id_1: id1, user_id_2: id2 }, { onConflict: 'user_id_1, user_id_2', ignoreDuplicates: true });
+    if (upsertError) throw upsertError;
   }
 }
 
@@ -99,16 +111,16 @@ export async function getFriends(userId: string): Promise<Friend[]> {
   if (error) throw error;
   if (!rows || rows.length === 0) return [];
 
-  const friendIds = rows.map((r: any) => r.user_id_1 === userId ? r.user_id_2 : r.user_id_1);
+  const friendIds = rows.map((r) => r.user_id_1 === userId ? r.user_id_2 : r.user_id_1);
 
   const { data: profiles } = await supabase
     .from('profiles')
     .select('id, display_name, avatar_url')
     .in('id', friendIds);
 
-  const profileMap = new Map((profiles ?? []).map((p: any) => [p.id, p]));
+  const profileMap = new Map(profiles?.map((p) => [p.id, p]) ?? []);
 
-  return rows.map((r: any) => {
+  return rows.map((r) => {
     const fid = r.user_id_1 === userId ? r.user_id_2 : r.user_id_1;
     const profile = profileMap.get(fid);
     return {
