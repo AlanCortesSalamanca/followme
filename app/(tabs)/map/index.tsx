@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View, ActivityIndicator } from 'react-native';
-import MapLibreGL from '@maplibre/maplibre-react-native';
+import Constants from 'expo-constants';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useTripStore } from '@/stores/useTripStore';
 import { useLocationTracking } from '@/hooks/useLocationTracking';
@@ -9,6 +9,8 @@ import { getTripById, getTripParticipants } from '@/services/supabase/trips';
 import type { Participant } from '@/services/supabase/trips';
 
 const MAP_STYLE = process.env.EXPO_PUBLIC_MAP_STYLE_URL ?? 'https://demotiles.maplibre.org/style.json';
+const isExpoGo = Constants.appOwnership === 'expo';
+const MapLibreGL = isExpoGo ? null : require('@maplibre/maplibre-react-native').default;
 
 export default function MapScreen() {
   const { session } = useAuthStore();
@@ -97,6 +99,20 @@ export default function MapScreen() {
         isOnline: live.isOnline,
       });
     }
+  }
+
+  if (!MapLibreGL) {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.noTripTitle}>Mapa no disponible en Expo Go</Text>
+        <Text style={styles.noTripSubtitle}>
+          MapLibre necesita un development build. La app puede probarse en Expo Go, pero el mapa requiere `npx expo run:ios` o un build de desarrollo con EAS.
+        </Text>
+        <Pressable style={styles.goButton} onPress={goToTripDetail}>
+          <Text style={styles.goButtonText}>Ver detalle del viaje</Text>
+        </Pressable>
+      </View>
+    );
   }
 
   return (
